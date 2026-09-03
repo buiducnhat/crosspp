@@ -39,6 +39,37 @@ bool HalClock::getTime(uint8_t& hour, uint8_t& minute) const {
   return true;
 }
 
+bool HalClock::getDateTime(uint16_t& year, uint8_t& month, uint8_t& day, uint8_t& hour, uint8_t& minute) const {
+  if (!_available) return false;
+  Rtc::DateTime dt;
+  if (!_sdkRtc.now(dt)) return false;
+  year = dt.year;
+  month = dt.month;
+  day = dt.day;
+  hour = dt.hour;
+  minute = dt.minute;
+  return true;
+}
+
+uint32_t HalClock::getEpoch() const {
+  uint16_t year;
+  uint8_t month, day, hour, minute;
+  if (!getDateTime(year, month, day, hour, minute)) return 0;
+  struct tm t = {};
+  t.tm_year = static_cast<int>(year) - 1900;
+  t.tm_mon = static_cast<int>(month) - 1;
+  t.tm_mday = static_cast<int>(day);
+  t.tm_hour = static_cast<int>(hour);
+  t.tm_min = static_cast<int>(minute);
+  return static_cast<uint32_t>(mktime(&t));
+}
+
+int32_t HalClock::getLocalDay() const {
+  const uint32_t epoch = getEpoch();
+  if (epoch == 0) return -1;
+  return static_cast<int32_t>(epoch / 86400);
+}
+
 bool HalClock::formatTime(char* buf, size_t bufSize, uint8_t utcOffsetQuarterHoursBiased, bool use12Hour) const {
   if (bufSize < (use12Hour ? 9u : 6u)) return false;
   uint8_t h, m;

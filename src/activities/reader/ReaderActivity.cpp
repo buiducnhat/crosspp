@@ -66,11 +66,12 @@ void ReaderActivity::onEnter() {
   APP_STATE.openEpubPath = bookPath;
   APP_STATE.saveToFile();
   RECENT_BOOKS.addBook(bookPath, getBookTitle(), getBookAuthor(), getBookThumbBmpPath());
-  requestUpdate();
+  readingSessionTracker.beginSession(bookPath);
 }
 
 void ReaderActivity::onExit() {
   Activity::onExit();
+  readingSessionTracker.endSession();
 
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
   APP_STATE.readerActivityLoadCount = 0;
@@ -141,6 +142,7 @@ bool ReaderActivity::handleEndOfBookPageTurn(const bool prevTriggered, const boo
 
 void ReaderActivity::loop() {
   clearEndOfBookOptionsIfNeeded();
+  readingSessionTracker.update();
   if (handleEndOfBookMenu()) return;
   if (handleFormatInput()) return;
   if (handleBackNavigation()) return;
@@ -151,6 +153,9 @@ void ReaderActivity::loop() {
   nextTriggered = nextTriggered || touch.next;
   if (!prevTriggered && !nextTriggered) return;
   if (handleEndOfBookPageTurn(prevTriggered, nextTriggered)) return;
+
+  readingSessionTracker.noteActivity();
+  if (isAtEndOfBook()) readingSessionTracker.markCompleted();
 
   const unsigned long heldMs = (touch.prev || touch.next) ? touch.heldMs : mappedInput.getHeldTime();
   const bool skip =

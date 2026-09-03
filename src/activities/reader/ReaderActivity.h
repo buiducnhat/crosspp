@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ReadingSessionTracker.h>
+
 #include <atomic>
 #include <memory>
 #include <string>
@@ -13,6 +15,9 @@ class ReaderActivity : public Activity {
   std::string bookPath;
   int pagesUntilFullRefresh = 0;
   bool forcedRefreshPending = false;
+
+  // Reading-stats session for the currently open book.
+  ReadingSessionTracker readingSessionTracker;
 
   std::unique_ptr<EndOfBookOptions> endOfBookOptions;
   std::atomic<bool> endOfBookOptionsReady{false};
