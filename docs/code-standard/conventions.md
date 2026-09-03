@@ -36,3 +36,25 @@ ESP32-C3 has ~380KB usable DRAM and **no PSRAM**. Memory fragmentation or unexpe
   ```bash
   pio run
   ```
+
+### 5. Release Protocol & Artifact Standards
+
+Every release must follow the standard repository pattern established in releases 1.0.0, 1.0.1, and 1.0.3:
+
+1. **Version Bump**: Increment `version = X.Y.Z` in `platformio.ini` under `[crosspoint]`.
+2. **Build Release Binaries**:
+   ```bash
+   pio run -e gh_release
+   ```
+3. **Artifact Bundle**: Every GitHub release MUST include all 3 binary files from `.pio/build/gh_release/`:
+   - `firmware.bin` (Production firmware binary for ESP32-C3 / Xteink X3/X4)
+   - `bootloader.bin` (Bootloader binary)
+   - `partitions.bin` (Partition table binary)
+4. **Git Tag & Release Title**:
+   - Tag format: `X.Y.Z` (e.g. `1.0.3`)
+   - Release Title: `X.Y.Z` (strictly matches the version string)
+5. **Release Notes Structure**:
+   - `## CrossPP X.Y.Z` header and concise summary.
+   - `### What's New` with categorized feature and fix bullets.
+   - `### Downloads` listing `firmware.bin`, `bootloader.bin`, and `partitions.bin`.
+   - `### How to Install` with web flasher and esptool instructions.

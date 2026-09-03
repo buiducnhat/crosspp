@@ -36,3 +36,25 @@ ESP32-C3 chỉ có ~380KB DRAM khả dụng và **hoàn toàn không có PSRAM**
   ```bash
   pio run
   ```
+
+### 5. Quy chuẩn phát hành phiên bản & Tệp nhị phân (Release Protocol)
+
+Mọi bản release phải tuân thủ nghiêm ngặt định dạng chuẩn đã thiết lập từ các bản 1.0.0, 1.0.1 và 1.0.3:
+
+1. **Tăng số phiên bản**: Cập nhật `version = X.Y.Z` trong `platformio.ini` dưới mục `[crosspoint]`.
+2. **Biên dịch bản phát hành sản xuất**:
+   ```bash
+   pio run -e gh_release
+   ```
+3. **Bộ tệp nhị phân đính kèm (Artifacts)**: Mọi GitHub Release BẮT BUỘC phải đính kèm đủ 3 tệp nhị phân từ `.pio/build/gh_release/`:
+   - `firmware.bin` (Firmware chính thức cho chip ESP32-C3 / máy Xteink X3/X4)
+   - `bootloader.bin` (Tệp bootloader)
+   - `partitions.bin` (Bảng phân vùng bộ nhớ)
+4. **Quy ước đặt Tag & Tiêu đề Release**:
+   - Định dạng Git Tag: `X.Y.Z` (ví dụ `1.0.3`)
+   - Tiêu đề Release: `X.Y.Z` (trùng khớp hoàn toàn với chuỗi phiên bản)
+5. **Cấu trúc nội dung Release Notes**:
+   - Tiêu đề cấp 2 `## CrossPP X.Y.Z` và đoạn tóm tắt ngắn 1-2 câu.
+   - `### What's New` phân nhóm rõ ràng các tính năng mới và bản vá lỗi.
+   - `### Downloads` liệt kê chi tiết `firmware.bin`, `bootloader.bin`, và `partitions.bin`.
+   - `### How to Install` hướng dẫn nạp qua web flasher và esptool.
