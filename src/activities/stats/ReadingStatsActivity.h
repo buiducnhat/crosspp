@@ -10,11 +10,12 @@
 #include "components/OptionPopup.h"
 
 // Reading statistics screen: Settings-style tab band (UiTabListActivity
-// chrome) over three tabs — Overview (tile grid of totals), By Book (list of
-// Recent Books with per-book stats; Confirm opens a book-detail popup, which
-// can jump into the book), Heatmap (52 weeks paged ~13 weeks/page so cells
-// stay readable; Left/Right flips pages, Up/Down moves the weekday cursor,
-// Confirm shows the day's detail popup).
+// chrome) over four tabs — Overview (tile grid of totals + habit tiles),
+// By Book (list of Recent Books with per-book stats; Confirm opens a
+// book-detail popup, which can jump into the book), Heatmap (52 weeks paged
+// ~13 weeks/page so cells stay readable; Left/Right flips pages, Up/Down
+// moves the weekday cursor, Confirm shows the day's detail popup), Insights
+// (passive list of reading-habit metrics computed from the daily aggregate).
 class ReadingStatsActivity final : public UiTabListActivity {
   // --- tab-shared state ---
   int selectedTab = 0;
@@ -36,9 +37,18 @@ class ReadingStatsActivity final : public UiTabListActivity {
   int heatCursorWeek = 0;  // week within the visible page
   OptionPopup dayPopup;
 
+  // --- Insights ---
+  // Value buffers are members: ListItem pointers must stay valid until the
+  // next buildScreen pass.
+  static constexpr int INSIGHT_ROWS = 7;
+  static constexpr size_t INSIGHT_VALUE_SIZE = 32;
+  freeink::ui::ListItem insightItems[INSIGHT_ROWS];
+  const char* insightLabels[INSIGHT_ROWS] = {};
+  char insightValues[INSIGHT_ROWS][INSIGHT_VALUE_SIZE] = {};
+
   // --- UiTabListActivity contract ---
   int listCount() const override;
-  int tabCount() const override { return 3; }
+  int tabCount() const override { return 4; }
   int activeTab() const override { return selectedTab; }
   const char* tabLabel(int index) const override;
   void buildScreen(UiScreen& screen) override;
@@ -54,6 +64,7 @@ class ReadingStatsActivity final : public UiTabListActivity {
 
   void showBookDetail(int index);
   void buildOverview(UiScreen& screen);
+  void buildInsights(UiScreen& screen);
   void buildByBook(UiScreen& screen);
   void buildHeatmap(UiScreen& screen);
   void rebuildBookItems();

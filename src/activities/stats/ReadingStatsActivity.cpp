@@ -6,6 +6,7 @@
 #include <Logging.h>
 #include <MappedInputManager.h>
 #include <ReadingStatsDateUtils.h>
+#include <ReadingStatsInsights.h>
 #include <RecentBooksStore.h>
 
 #include <cstdio>
@@ -38,7 +39,7 @@ int ReadingStatsActivity::listCount() const {
 
 const char* ReadingStatsActivity::tabLabel(const int index) const {
   static const StrId tabNames[] = {StrId::STR_STATS_TAB_OVERVIEW, StrId::STR_STATS_TAB_BY_BOOK,
-                                   StrId::STR_STATS_TAB_HEATMAP};
+                                   StrId::STR_STATS_TAB_HEATMAP, StrId::STR_STATS_TAB_INSIGHTS};
   return I18N.get(tabNames[index]);
 }
 
@@ -88,40 +89,110 @@ void ReadingStatsActivity::buildScreen(UiScreen& screen) {
     case 1:
       buildByBook(screen);
       break;
-    default:
+    case 2:
       buildHeatmap(screen);
+      break;
+    default:
+      buildInsights(screen);
       break;
   }
 }
 
 void ReadingStatsActivity::buildOverview(UiScreen& screen) {
   const auto totals = STATS_STORE.getTotals();
+  const auto insights = ReadingStats::computeInsights(STATS_STORE.getDays(), ReadingStats::todayDayNumber());
   char timeBuf[24];
   char sessionsBuf[12];
   char completedBuf[12];
+  char streakBuf[24];
+  char avgBuf[24];
   snprintf(sessionsBuf, sizeof(sessionsBuf), "%lu", static_cast<unsigned long>(totals.sessions));
   snprintf(completedBuf, sizeof(completedBuf), "%lu", static_cast<unsigned long>(totals.completed));
+  snprintf(streakBuf, sizeof(streakBuf), "%lu %s", static_cast<unsigned long>(insights.currentStreak),
+           insights.currentStreak == 1 ? tr(STR_STATS_DAY_UNIT) : tr(STR_STATS_DAYS_UNIT));
 
   // Labels include the value: TileGridItem carries a single label string.
   char tile0[48];
   char tile1[48];
   char tile2[48];
+  char tile3[48];
+  char tile4[48];
   snprintf(tile0, sizeof(tile0), "%s: %s", tr(STR_STATS_TOTAL_TIME),
            minutesText(totals.minutes, timeBuf, sizeof(timeBuf)));
   snprintf(tile1, sizeof(tile1), "%s: %s", tr(STR_STATS_SESSIONS), sessionsBuf);
   snprintf(tile2, sizeof(tile2), "%s: %s", tr(STR_STATS_BOOKS_COMPLETED), completedBuf);
+  snprintf(tile3, sizeof(tile3), "%s: %s", tr(STR_STATS_CURRENT_STREAK), streakBuf);
+  snprintf(tile4, sizeof(tile4), "%s: %s", tr(STR_STATS_AVG_7_DAYS),
+           minutesText(insights.avgMinutes7, avgBuf, sizeof(avgBuf)));
 
-  fui::TileGridItem items[3];
+  fui::TileGridItem items[5];
   items[0].label = tile0;
   items[1].label = tile1;
   items[2].label = tile2;
+  items[3].label = tile3;
+  items[4].label = tile4;
 
   fui::TileGridProps props;
   props.items = items;
-  props.count = 3;
+  props.count = 5;
   props.action = fui::NO_ACTION;
   props.inputMask = 0;  // passive display; buttons navigate the ring only
   screen.tileGrid(props);
+}
+
+void ReadingStatsActivity::buildInsights(UiScreen& screen) {
+  const auto insights = ReadingStats::computeInsights(STATS_STORE.getDays(), ReadingStats::todayDayNumber());
+  if (insights.activeDays == 0) {
+    screen.centeredText(tr(STR_STATS_NO_DATA));
+    return;
+  }
+
+  static const StrId weekdayNames[] = {StrId::STR_STATS_DAY_SUN, StrId::STR_STATS_DAY_MON, StrId::STR_STATS_DAY_TUE,
+                                       StrId::STR_STATS_DAY_WED, StrId::STR_STATS_DAY_THU, StrId::STR_STATS_DAY_FRI,
+                                       StrId::STR_STATS_DAY_SAT};
+
+  // Render passes re-run buildScreen, so values are formatted into member
+  // buffers that stay valid until the next build.
+  snprintf(insightValues[0], INSIGHT_VALUE_SIZE, "%lu %s", static_cast<unsigned long>(insights.currentStreak),
+           insights.currentStreak == 1 ? tr(STR_STATS_DAY_UNIT) : tr(STR_STATS_DAYS_UNIT));
+  snprintf(insightValues[1], INSIGHT_VALUE_SIZE, "%lu %s", static_cast<unsigned long>(insights.longestStreak),
+           insights.longestStreak == 1 ? tr(STR_STATS_DAY_UNIT) : tr(STR_STATS_DAYS_UNIT));
+  minutesText(insights.avgMinutes7, insightValues[2], INSIGHT_VALUE_SIZE);
+  minutesText(insights.avgMinutes30, insightValues[3], INSIGHT_VALUE_SIZE);
+  if (insights.bestDayNumber >= 0) {
+    char dateBuf[11];
+    ReadingStats::formatDayKey(insights.bestDayNumber, dateBuf, sizeof(dateBuf));
+    char minBuf[24];
+    snprintf(insightValues[4], INSIGHT_VALUE_SIZE, "%s (%s)",
+             minutesText(insights.bestDayMinutes, minBuf, sizeof(minBuf)), dateBuf);
+  }
+  minutesText(insights.avgSessionMinutes, insightValues[6], INSIGHT_VALUE_SIZE);
+
+  insightLabels[0] = tr(STR_STATS_CURRENT_STREAK);
+  insightLabels[1] = tr(STR_STATS_LONGEST_STREAK);
+  insightLabels[2] = tr(STR_STATS_AVG_7_DAYS);
+  insightLabels[3] = tr(STR_STATS_AVG_30_DAYS);
+  insightLabels[4] = tr(STR_STATS_BEST_DAY);
+  insightLabels[5] = tr(STR_STATS_FAVORITE_WEEKDAY);
+  insightLabels[6] = tr(STR_STATS_AVG_SESSION);
+  if (insights.bestWeekday >= 0) {
+    snprintf(insightValues[5], INSIGHT_VALUE_SIZE, "%s", I18N.get(weekdayNames[insights.bestWeekday]));
+  }
+
+  for (int i = 0; i < INSIGHT_ROWS; i++) {
+    insightItems[i].label = insightLabels[i];
+    insightItems[i].value = insightValues[i];
+  }
+
+  fui::ListProps props;
+  props.items = insightItems;
+  props.count = INSIGHT_ROWS;
+  props.action = fui::NO_ACTION;
+  props.inputMask = 0;  // passive list; buttons navigate the ring only
+  props.valueInset = 8;
+  props.labelText = screen.theme().smallText;
+  syncTabListViewport(screen, props);
+  screen.list(props);
 }
 
 void ReadingStatsActivity::buildByBook(UiScreen& screen) {
