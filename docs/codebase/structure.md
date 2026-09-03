@@ -25,7 +25,7 @@ crosspp/
 │   │   ├── network/         # Web server, wireless file transfer, AP/STA setup
 │   │   ├── reader/          # Primary book reader activity (EPUB, TXT, XTC)
 │   │   ├── settings/        # Device configuration, theme, buttons, font downloader
-│   │   ├── stats/           # ReadingStatsActivity (Overview, By Book, Heatmap, Insights)
+│   │   ├── stats/           # ReadingStatsActivity (Overview, By Book, Heatmap, Settings)
 │   │   └── util/            # Dialogs, keyboard, frontlight panel, battery viewer
 │   ├── components/          # UI Theme, dialog cards, option popups, nav bars
 │   ├── network/             # Embedded HTTP/WebDAV server, OTA updater, captive portal
@@ -45,7 +45,7 @@ crosspp/
 | --- | --- | --- |
 | **ActivityManager** | `src/activities/ActivityManager.h` | Top-level screen navigation, stack switching, lifecycle control (`onEnter`, `loop`, `onExit`). |
 | **ReaderActivity** | `src/activities/reader/ReaderActivity.h` | Rendering pages, handling turns, font size changing, bookmarks, footnotes, StarDict dictionary lookup, and triggering `ReadingSessionTracker`. |
-| **ReadingStatsActivity** | `src/activities/stats/ReadingStatsActivity.h` | 4-tab statistics interface: Overview (cards), By Book (list with detail popup), Heatmap (52-week calendar), Insights (streak and reading habit metrics). |
+| **ReadingStatsActivity** | `src/activities/stats/ReadingStatsActivity.h` | 4-tab statistics interface: Overview (scrollable metrics list), By Book (list with detail popup), Heatmap (52-week calendar), Settings (NTP sync & clock configuration). |
 | **GfxRenderer** | `lib/GfxRenderer/GfxRenderer.h` | Direct drawing into the 48KB 1-bit buffer: lines, circles, boxes, dithered fills, text layouts, and coordinate transformations across 4 orientations. |
 | **HalStorage** | `lib/hal/HalStorage.h` | Singleton `Storage` providing mutex-synchronized `HalFile` handles over SdFat to prevent SPI task race conditions. |
 | **CrossPointSettings** | `src/CrossPointSettings.h` | Stores orientation, font choice, layout margins, button behaviors, and theme preferences to `/.crosspoint/settings.json`. |

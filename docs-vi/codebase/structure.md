@@ -25,7 +25,7 @@ crosspp/
 │   │   ├── network/         # Máy chủ web, truyền tệp không dây, cài đặt Wi-Fi AP/STA
 │   │   ├── reader/          # Trình đọc sách chính (EPUB, TXT, XTC)
 │   │   ├── settings/        # Cài đặt thiết bị, chủ đề (theme), nút bấm, tải font chữ
-│   │   ├── stats/           # ReadingStatsActivity (Tổng quan, Theo sách, Heatmap, Thói quen)
+│   │   ├── stats/           # ReadingStatsActivity (Tổng quan, Theo sách, Heatmap, Cài đặt)
 │   │   └── util/            # Hộp thoại, bàn phím ảo, bảng chỉnh đèn nền, xem dung lượng pin
 │   ├── components/          # Giao diện UITheme, thẻ thông báo, popup lựa chọn, thanh điều hướng
 │   ├── network/             # Máy chủ HTTP/WebDAV nhúng, cập nhật OTA, captive portal
@@ -45,7 +45,7 @@ crosspp/
 | --- | --- | --- |
 | **ActivityManager** | `src/activities/ActivityManager.h` | Điều hướng màn hình cấp cao nhất, chuyển đổi stack màn hình, quản lý vòng đời (`onEnter`, `loop`, `onExit`). |
 | **ReaderActivity** | `src/activities/reader/ReaderActivity.h` | Render nội dung sách, xử lý lật trang, thay đổi cỡ chữ, dấu trang, chú thích cuối trang (footnote), tra từ điển StarDict, và kích hoạt `ReadingSessionTracker`. |
-| **ReadingStatsActivity** | `src/activities/stats/ReadingStatsActivity.h` | Giao diện thống kê 4 tab: Tổng quan (các thẻ chỉ số), Theo sách (danh sách và popup chi tiết), Heatmap (lịch đọc 52 tuần), Thói quen (chuỗi ngày liên tục, thời gian đọc trung bình). |
+| **ReadingStatsActivity** | `src/activities/stats/ReadingStatsActivity.h` | Giao diện thống kê 4 tab: Tổng quan (danh sách cuộn thống nhất), Theo sách (danh sách và popup chi tiết), Heatmap (lịch đọc 52 tuần), Cài đặt (đồng bộ NTP & thiết lập đồng hồ). |
 | **GfxRenderer** | `lib/GfxRenderer/GfxRenderer.h` | Thao tác vẽ trực tiếp lên bộ đệm 1-bit 48KB: đường kẻ, hình tròn, hộp chữ nhật, tô màu dither, bố cục văn bản, và biến đổi tọa độ theo 4 hướng xoay màn hình. |
 | **HalStorage** | `lib/hal/HalStorage.h` | Singleton `Storage` cung cấp handle `HalFile` được đồng bộ hóa mutex trên nền SdFat nhằm ngăn chặn xung đột SPI giữa các task. |
 | **CrossPointSettings** | `src/CrossPointSettings.h` | Lưu trữ hướng màn hình, kiểu font, lề trang, hành vi nút bấm và theme vào `/.crosspoint/settings.json`. |

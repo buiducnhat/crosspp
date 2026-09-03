@@ -27,6 +27,7 @@ graph TD
 - **`HalDisplay`**: Điều khiển chu kỳ làm mới của màn hình E-Ink, waveform, chế độ quét nhanh vs quét toàn bộ, và phép biến đổi xoay màn hình (orientation).
 - **`HalGPIO`**: Chuyển đổi tín hiệu nút bấm vật lý và sự kiện chạm cảm ứng thành các sự kiện logic thông qua `MappedInputManager`.
 - **`HalStorage` / Singleton `Storage`**: Lớp bọc an toàn luồng (thread-safe) bao quanh SdFat. Bảo vệ bus SPI và máy trạng thái `SdSpiCard` bằng `storageMutex` nhằm tránh lỗi sập hệ thống (panic) do xung đột giữa các task FreeRTOS (vấn đề #518).
+- **`HalClock`**: Điều khiển RTC phần cứng DS3231 qua I2C và quản lý đồng bộ thời gian mạng NTP (`syncFromNTP()`) với cơ chế hấp thụ độ trễ khởi động mạng 20 giây qua nhiều máy chủ NTP (Google, Cloudflare, pool.ntp.org).
 
 ### 2. Pipeline render đồ họa (`lib/GfxRenderer/`)
 - **Kiến trúc đơn bộ đệm (Single-buffer)**: Duy trì duy nhất một vùng nhớ framebuffer 1-bit đen trắng dung lượng 48,000 byte (800×480÷8) trên DRAM.
@@ -42,6 +43,7 @@ graph TD
 - **`ReadingSessionTracker`**: Đo lường thời gian đọc thực tế trong `ReaderActivity`. Tự động áp dụng cửa sổ timeout 5 phút không hoạt động (`ACTIVITY_TIMEOUT_MS`) để loại trừ thời gian tạm dừng.
 - **`ReadingStatsStore`**: Lưu trữ dữ liệu tổng hợp hàng ngày vào file `/.crosspoint/reading_stats.json` qua `PersistableStoreBase`. Giữ tối đa 365 ngày lịch sử đọc gần nhất (`MAX_DAYS`).
 - **`ReadingStatsInsights`**: Hàm thuần túy (pure function) phân tích thói quen đọc (chuỗi ngày liên tiếp - streak, trung bình 7/30 ngày, ngày đọc nhiều nhất, thứ trong tuần hay đọc nhất) mà không cần thay đổi schema dữ liệu JSON.
+- **`ReadingStatsActivity` (`src/activities/stats/`)**: Giao diện thống kê 4 tab (`Tổng quan` dạng danh sách, `Theo sách`, `Heatmap`, và `Cài đặt`) xây dựng trên `UiTabListActivity`, hỗ trợ căn chỉnh đồng hồ trực tiếp và đảm bảo an toàn bộ đệm stack (< 256 B).
 
 ### 5. Vòng đời giao diện (Activity Lifecycle) (`src/activities/`)
 - Các màn hình UI kế thừa từ `Activity`, `UiListActivity`, hoặc `UiTabListActivity`.

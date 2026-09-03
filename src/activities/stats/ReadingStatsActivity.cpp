@@ -1,19 +1,23 @@
 #include "ReadingStatsActivity.h"
 
 #include <GfxRenderer.h>
+#include <HalClock.h>
 #include <HalDisplay.h>
 #include <I18n.h>
 #include <Logging.h>
 #include <MappedInputManager.h>
+#include <Memory.h>
 #include <ReadingStatsDateUtils.h>
 #include <ReadingStatsInsights.h>
 #include <RecentBooksStore.h>
 
 #include <cstdio>
 
+#include "CrossPointSettings.h"
+#include "activities/settings/ClockOffsetActivity.h"
+#include "activities/settings/ClockSyncActivity.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
-
 namespace fui = freeink::ui;
 
 ReadingStatsActivity::ReadingStatsActivity(GfxRenderer& renderer, MappedInputManager& mappedInput)
@@ -31,15 +35,20 @@ void ReadingStatsActivity::onEnter() {
   rebuildBookItems();
 }
 
+int ReadingStatsActivity::overviewCount() const {
+  return SETTINGS.clockHasBeenSynced ? OVERVIEW_BASE_ROWS : OVERVIEW_MAX_ROWS;
+}
+
 int ReadingStatsActivity::listCount() const {
-  // Overview and Heatmap are single-element tabs; By Book lists the books.
+  if (selectedTab == 0) return overviewCount();
   if (selectedTab == 1) return static_cast<int>(statBookPaths.size());
+  if (selectedTab == 3) return STATS_SETTINGS_ROWS;
   return 1;
 }
 
 const char* ReadingStatsActivity::tabLabel(const int index) const {
   static const StrId tabNames[] = {StrId::STR_STATS_TAB_OVERVIEW, StrId::STR_STATS_TAB_BY_BOOK,
-                                   StrId::STR_STATS_TAB_HEATMAP, StrId::STR_STATS_TAB_INSIGHTS};
+                                   StrId::STR_STATS_TAB_HEATMAP, StrId::STR_SETTINGS_TITLE};
   return I18N.get(tabNames[index]);
 }
 
@@ -92,8 +101,9 @@ void ReadingStatsActivity::buildScreen(UiScreen& screen) {
     case 2:
       buildHeatmap(screen);
       break;
+    case 3:
     default:
-      buildInsights(screen);
+      buildSettings(screen);
       break;
   }
 }
@@ -101,94 +111,70 @@ void ReadingStatsActivity::buildScreen(UiScreen& screen) {
 void ReadingStatsActivity::buildOverview(UiScreen& screen) {
   const auto totals = STATS_STORE.getTotals();
   const auto insights = ReadingStats::computeInsights(STATS_STORE.getDays(), ReadingStats::todayDayNumber());
-  char timeBuf[24];
-  char sessionsBuf[12];
-  char completedBuf[12];
-  char streakBuf[24];
-  char avgBuf[24];
-  snprintf(sessionsBuf, sizeof(sessionsBuf), "%lu", static_cast<unsigned long>(totals.sessions));
-  snprintf(completedBuf, sizeof(completedBuf), "%lu", static_cast<unsigned long>(totals.completed));
-  snprintf(streakBuf, sizeof(streakBuf), "%lu %s", static_cast<unsigned long>(insights.currentStreak),
-           insights.currentStreak == 1 ? tr(STR_STATS_DAY_UNIT) : tr(STR_STATS_DAYS_UNIT));
-
-  // Labels include the value: TileGridItem carries a single label string.
-  char tile0[48];
-  char tile1[48];
-  char tile2[48];
-  char tile3[48];
-  char tile4[48];
-  snprintf(tile0, sizeof(tile0), "%s: %s", tr(STR_STATS_TOTAL_TIME),
-           minutesText(totals.minutes, timeBuf, sizeof(timeBuf)));
-  snprintf(tile1, sizeof(tile1), "%s: %s", tr(STR_STATS_SESSIONS), sessionsBuf);
-  snprintf(tile2, sizeof(tile2), "%s: %s", tr(STR_STATS_BOOKS_COMPLETED), completedBuf);
-  snprintf(tile3, sizeof(tile3), "%s: %s", tr(STR_STATS_CURRENT_STREAK), streakBuf);
-  snprintf(tile4, sizeof(tile4), "%s: %s", tr(STR_STATS_AVG_7_DAYS),
-           minutesText(insights.avgMinutes7, avgBuf, sizeof(avgBuf)));
-
-  fui::TileGridItem items[5];
-  items[0].label = tile0;
-  items[1].label = tile1;
-  items[2].label = tile2;
-  items[3].label = tile3;
-  items[4].label = tile4;
-
-  fui::TileGridProps props;
-  props.items = items;
-  props.count = 5;
-  props.action = fui::NO_ACTION;
-  props.inputMask = 0;  // passive display; buttons navigate the ring only
-  screen.tileGrid(props);
-}
-
-void ReadingStatsActivity::buildInsights(UiScreen& screen) {
-  const auto insights = ReadingStats::computeInsights(STATS_STORE.getDays(), ReadingStats::todayDayNumber());
-  if (insights.activeDays == 0) {
-    screen.centeredText(tr(STR_STATS_NO_DATA));
-    return;
-  }
 
   static const StrId weekdayNames[] = {StrId::STR_STATS_DAY_SUN, StrId::STR_STATS_DAY_MON, StrId::STR_STATS_DAY_TUE,
                                        StrId::STR_STATS_DAY_WED, StrId::STR_STATS_DAY_THU, StrId::STR_STATS_DAY_FRI,
                                        StrId::STR_STATS_DAY_SAT};
 
-  // Render passes re-run buildScreen, so values are formatted into member
-  // buffers that stay valid until the next build.
-  snprintf(insightValues[0], INSIGHT_VALUE_SIZE, "%lu %s", static_cast<unsigned long>(insights.currentStreak),
+  char timeBuf[24];
+  minutesText(totals.minutes, timeBuf, sizeof(timeBuf));
+  snprintf(overviewValues[0], OVERVIEW_VALUE_SIZE, "%s", timeBuf);
+  snprintf(overviewValues[1], OVERVIEW_VALUE_SIZE, "%lu", static_cast<unsigned long>(totals.completed));
+  snprintf(overviewValues[2], OVERVIEW_VALUE_SIZE, "%lu", static_cast<unsigned long>(totals.sessions));
+  minutesText(insights.avgSessionMinutes, overviewValues[3], OVERVIEW_VALUE_SIZE);
+  snprintf(overviewValues[4], OVERVIEW_VALUE_SIZE, "%lu %s", static_cast<unsigned long>(insights.currentStreak),
            insights.currentStreak == 1 ? tr(STR_STATS_DAY_UNIT) : tr(STR_STATS_DAYS_UNIT));
-  snprintf(insightValues[1], INSIGHT_VALUE_SIZE, "%lu %s", static_cast<unsigned long>(insights.longestStreak),
+  snprintf(overviewValues[5], OVERVIEW_VALUE_SIZE, "%lu %s", static_cast<unsigned long>(insights.longestStreak),
            insights.longestStreak == 1 ? tr(STR_STATS_DAY_UNIT) : tr(STR_STATS_DAYS_UNIT));
-  minutesText(insights.avgMinutes7, insightValues[2], INSIGHT_VALUE_SIZE);
-  minutesText(insights.avgMinutes30, insightValues[3], INSIGHT_VALUE_SIZE);
+  minutesText(insights.avgMinutes7, overviewValues[6], OVERVIEW_VALUE_SIZE);
+  minutesText(insights.avgMinutes30, overviewValues[7], OVERVIEW_VALUE_SIZE);
+
   if (insights.bestDayNumber >= 0) {
     char dateBuf[11];
     ReadingStats::formatDayKey(insights.bestDayNumber, dateBuf, sizeof(dateBuf));
     char minBuf[24];
-    snprintf(insightValues[4], INSIGHT_VALUE_SIZE, "%s (%s)",
+    snprintf(overviewValues[8], OVERVIEW_VALUE_SIZE, "%s (%s)",
              minutesText(insights.bestDayMinutes, minBuf, sizeof(minBuf)), dateBuf);
-  }
-  minutesText(insights.avgSessionMinutes, insightValues[6], INSIGHT_VALUE_SIZE);
-
-  insightLabels[0] = tr(STR_STATS_CURRENT_STREAK);
-  insightLabels[1] = tr(STR_STATS_LONGEST_STREAK);
-  insightLabels[2] = tr(STR_STATS_AVG_7_DAYS);
-  insightLabels[3] = tr(STR_STATS_AVG_30_DAYS);
-  insightLabels[4] = tr(STR_STATS_BEST_DAY);
-  insightLabels[5] = tr(STR_STATS_FAVORITE_WEEKDAY);
-  insightLabels[6] = tr(STR_STATS_AVG_SESSION);
-  if (insights.bestWeekday >= 0) {
-    snprintf(insightValues[5], INSIGHT_VALUE_SIZE, "%s", I18N.get(weekdayNames[insights.bestWeekday]));
+  } else {
+    snprintf(overviewValues[8], OVERVIEW_VALUE_SIZE, "-");
   }
 
-  for (int i = 0; i < INSIGHT_ROWS; i++) {
-    insightItems[i].label = insightLabels[i];
-    insightItems[i].value = insightValues[i];
+  if (insights.bestWeekday >= 0 && insights.bestWeekday < 7) {
+    snprintf(overviewValues[9], OVERVIEW_VALUE_SIZE, "%s", I18N.get(weekdayNames[insights.bestWeekday]));
+  } else {
+    snprintf(overviewValues[9], OVERVIEW_VALUE_SIZE, "-");
+  }
+
+  if (!SETTINGS.clockHasBeenSynced) {
+    snprintf(overviewValues[10], OVERVIEW_VALUE_SIZE, "%s", tr(STR_NOT_SET));
+  }
+
+  overviewLabels[0] = tr(STR_STATS_TOTAL_TIME);
+  overviewLabels[1] = tr(STR_STATS_BOOKS_COMPLETED);
+  overviewLabels[2] = tr(STR_STATS_SESSIONS);
+  overviewLabels[3] = tr(STR_STATS_AVG_SESSION);
+  overviewLabels[4] = tr(STR_STATS_CURRENT_STREAK);
+  overviewLabels[5] = tr(STR_STATS_LONGEST_STREAK);
+  overviewLabels[6] = tr(STR_STATS_AVG_7_DAYS);
+  overviewLabels[7] = tr(STR_STATS_AVG_30_DAYS);
+  overviewLabels[8] = tr(STR_STATS_BEST_DAY);
+  overviewLabels[9] = tr(STR_STATS_FAVORITE_WEEKDAY);
+  if (!SETTINGS.clockHasBeenSynced) {
+    overviewLabels[10] = tr(STR_CLOCK);
+  }
+
+  const int count = overviewCount();
+  for (int i = 0; i < count; i++) {
+    overviewItems[i].label = overviewLabels[i];
+    overviewItems[i].value = overviewValues[i];
+    overviewItems[i].actionValue = static_cast<int16_t>(i);
   }
 
   fui::ListProps props;
-  props.items = insightItems;
-  props.count = INSIGHT_ROWS;
-  props.action = fui::NO_ACTION;
-  props.inputMask = 0;  // passive list; buttons navigate the ring only
+  props.items = overviewItems;
+  props.count = count;
+  props.action = ACTION_ROW;
+  props.inputMask = fui::InputTouch;
   props.valueInset = 8;
   props.labelText = screen.theme().smallText;
   syncTabListViewport(screen, props);
@@ -385,6 +371,55 @@ void ReadingStatsActivity::buildHeatmap(UiScreen& screen) {
   }
 }
 
+void ReadingStatsActivity::buildSettings(UiScreen& screen) {
+  // Row 0: Sync now
+  const char* syncVal = SETTINGS.clockHasBeenSynced ? tr(STR_CLOCK_SYNCED) : tr(STR_NOT_SET);
+  snprintf(settingsValues[0], sizeof(settingsValues[0]), "%s", syncVal);
+
+  // Row 1: UTC Offset
+  uint8_t biasedQ = SETTINGS.clockUtcOffsetQ;
+  if (biasedQ > 104) biasedQ = 48;
+  const int totalMinutes = (static_cast<int>(biasedQ) - 48) * 15;
+  const bool neg = totalMinutes < 0;
+  const int absMinutes = neg ? -totalMinutes : totalMinutes;
+  const int hours = absMinutes / 60;
+  const int mins = absMinutes % 60;
+  snprintf(settingsValues[1], sizeof(settingsValues[1]), "UTC%c%02d:%02d", neg ? '-' : '+', hours, mins);
+
+  // Row 2: Clock Format
+  const char* formatVal = SETTINGS.clockFormat == 1 ? tr(STR_CLOCK_FORMAT_12H) : tr(STR_CLOCK_FORMAT_24H);
+  snprintf(settingsValues[2], sizeof(settingsValues[2]), "%s", formatVal);
+
+  // Row 3: Current Time
+  if (!halClock.formatTime(settingsValues[3], sizeof(settingsValues[3]), SETTINGS.clockUtcOffsetQ,
+                           SETTINGS.clockFormat == 1)) {
+    snprintf(settingsValues[3], sizeof(settingsValues[3]), "%s", tr(STR_NOT_SET));
+  }
+
+  const char* const labels[STATS_SETTINGS_ROWS] = {
+      tr(STR_CLOCK_SYNC_NOW),
+      tr(STR_CLOCK_UTC_OFFSET),
+      tr(STR_CLOCK_FORMAT),
+      tr(STR_CURRENT_TIME),
+  };
+
+  for (int i = 0; i < STATS_SETTINGS_ROWS; i++) {
+    settingsItems[i].label = labels[i];
+    settingsItems[i].value = settingsValues[i];
+    settingsItems[i].actionValue = static_cast<int16_t>(i);
+  }
+
+  fui::ListProps props;
+  props.items = settingsItems;
+  props.count = STATS_SETTINGS_ROWS;
+  props.action = ACTION_ROW;
+  props.inputMask = fui::InputTouch;
+  props.valueInset = 8;
+  props.labelText = screen.theme().smallText;
+  syncTabListViewport(screen, props);
+  screen.list(props);
+}
+
 void ReadingStatsActivity::openBook(const int index) {
   if (index < 0 || index >= static_cast<int>(statBookPaths.size())) return;
   app.clearTapFlash();
@@ -444,10 +479,42 @@ void ReadingStatsActivity::showDayDetail() {
 }
 
 void ReadingStatsActivity::activateIndex(const int index) {
-  if (selectedTab == 1) {
+  if (selectedTab == 0) {
+    if (!SETTINGS.clockHasBeenSynced && index == OVERVIEW_BASE_ROWS) {
+      if (auto activity = makeUniqueNoThrow<ClockSyncActivity>(renderer, mappedInput)) {
+        startActivityForResult(std::move(activity), [this](const ActivityResult&) { requestUpdate(); });
+      } else {
+        LOG_ERR("STATS", "OOM: ClockSyncActivity");
+      }
+    }
+  } else if (selectedTab == 1) {
     showBookDetail(index);
   } else if (selectedTab == 2) {
     showDayDetail();
+  } else if (selectedTab == 3) {
+    handleSettingsSelection(index);
+  }
+}
+
+void ReadingStatsActivity::handleSettingsSelection(const int index) {
+  if (index == 0) {
+    if (auto activity = makeUniqueNoThrow<ClockSyncActivity>(renderer, mappedInput)) {
+      startActivityForResult(std::move(activity), [this](const ActivityResult&) { requestUpdate(); });
+    } else {
+      LOG_ERR("STATS", "OOM: ClockSyncActivity");
+    }
+  } else if (index == 1) {
+    if (auto activity = makeUniqueNoThrow<ClockOffsetActivity>(renderer, mappedInput)) {
+      startActivityForResult(std::move(activity), [this](const ActivityResult&) { requestUpdate(); });
+    } else {
+      LOG_ERR("STATS", "OOM: ClockOffsetActivity");
+    }
+  } else if (index == 2) {
+    SETTINGS.clockFormat = (SETTINGS.clockFormat + 1) % 2;
+    SETTINGS.saveToFile();
+    requestUpdate();
+  } else if (index == 3) {
+    requestUpdate();
   }
 }
 
@@ -522,11 +589,17 @@ bool ReadingStatsActivity::handleButtons() {
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     if (ringPos() == 0) {
       stepTab(1);
-    } else if (selectedTab == 2) {
-      showDayDetail();
+    } else if (selectedTab == 0) {
+      activateIndex(ringPos() - 1);
       requestUpdate();
     } else if (selectedTab == 1) {
       showBookDetail(ringPos() - 1);
+      requestUpdate();
+    } else if (selectedTab == 2) {
+      showDayDetail();
+      requestUpdate();
+    } else if (selectedTab == 3) {
+      activateIndex(ringPos() - 1);
       requestUpdate();
     }
     return true;

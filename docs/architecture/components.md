@@ -27,6 +27,7 @@ graph TD
 - **`HalDisplay`**: Controls physical E-Ink update cycles, waveforms, fast vs full refresh, and orientation transforms.
 - **`HalGPIO`**: Translates raw hardware buttons and touch events into logical events through `MappedInputManager`.
 - **`HalStorage` / `Storage` singleton**: Thread-safe wrapper over SdFat. Protects the SPI bus and `SdSpiCard` state machine via `storageMutex` to prevent task collision panics (issue #518).
+- **`HalClock`**: Controls hardware DS3231 RTC on I2C bus and manages network NTP synchronization (`syncFromNTP()`) with 20s startup delay absorption across Google, Cloudflare, and pool.ntp.org servers.
 
 ### 2. Graphic Rendering Pipeline (`lib/GfxRenderer/`)
 - **Single-buffer architecture**: Keeps exactly one 48,000-byte (800×480÷8) 1-bit monochrome framebuffer in DRAM.
@@ -42,6 +43,7 @@ graph TD
 - **`ReadingSessionTracker`**: Measures real reading time during `ReaderActivity`. Applies a 5-minute inactivity window (`ACTIVITY_TIMEOUT_MS`).
 - **`ReadingStatsStore`**: Persists aggregate daily stats (`/.crosspoint/reading_stats.json`) via `PersistableStoreBase`. Stores up to 365 days of reading history (`MAX_DAYS`).
 - **`ReadingStatsInsights`**: Pure-function habit analysis computing current/longest streak, 7/30 day averages, best reading day, and weekday distribution without schema modifications.
+- **`ReadingStatsActivity` (`src/activities/stats/`)**: Presents a 4-tab user interface (`Overview` unified list, `By Book`, `Heatmap`, and `Settings`) built on `UiTabListActivity`, featuring direct clock calibration and stack-safe (< 256 B) member buffers.
 
 ### 5. UI Activity Lifecycle (`src/activities/`)
 - Activities are stateful UI screens inheriting from `Activity`, `UiListActivity`, or `UiTabListActivity`.

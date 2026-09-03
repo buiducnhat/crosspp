@@ -18,14 +18,14 @@ CrossPP tracks your reading habits locally and privately on your SD card without
 
 - **Active Session Tracking**: Automatically logs reading sessions in `ReaderActivity` with a 5-minute idle timeout so paused time isn't counted.
 - **Home Menu Entry**: Directly accessible from the main menu with a dedicated bar-chart icon.
-- **Overview Tab**: Highlights reading milestones (total reading time in hours/minutes, session count, books completed) rendered in a clean card grid.
+- **Overview Tab**: Unified, scrollable list combining reading milestones (total reading time, books completed, sessions, avg session length) with habit insights (current/longest streaks, 7-day/30-day daily averages, best reading day, top reading day) and an instant clock-sync alert if the RTC has not been set.
 - **By Book Tab**: Lists all recently read books with per-book reading time and session counts. Selecting any book opens an in-depth statistics modal (Total time, Active days, Sessions, Minutes/day, Completed) with an option to open the book directly.
-- **Activity Heatmap**: GitHub-style activity calendar with 4 intensity levels (up to ≥60 min/day):
+- **Activity Heatmap Tab**: GitHub-style activity calendar with 4 intensity levels (up to ≥60 min/day):
   - Paginated by quarter (~13 weeks per view) for large, legible cells.
   - Month and weekday (Mon, Wed, Fri) labels.
   - 4-way D-pad cursor navigation.
   - Day-detail popup displaying exact date, active minutes, and sessions.
-
+- **Settings Tab**: On-screen clock synchronization (robust NTP sync across multiple servers with startup-delay absorption), UTC timezone offset adjustment, 12h/24h toggle, and live current time verification.
 ---
 
 ## Features

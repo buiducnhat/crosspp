@@ -17,12 +17,11 @@ CrossPP is a focused, distraction-free e-reader firmware optimized specifically 
 ### 2. Built-in Reading Statistics (CrossPP Highlight)
 - **Local & Private**: All metrics persist strictly to SD (`/.crosspoint/reading_stats.json`). No telemetry or network connections needed.
 - **Automatic Session Measurement**: Runs in the background with an idle timeout (5 minutes) so paused reading does not inflate stats.
-- **Four Dedicated Analytical Views**:
-  1. **Overview**: Total reading time, total sessions, books completed, current streak, and 7-day average.
+- **Four Dedicated Analytical and Management Tabs**:
+  1. **Overview**: Unified list view showing reading milestones and habit insights (total reading time, books completed, sessions, avg session length, current/longest streaks, 7-day/30-day daily averages, best day, top reading day, and clock calibration status if unsynced).
   2. **By Book**: Reading progress, time spent, active days, and sessions per book with direct launch capability.
   3. **Heatmap**: 52-week activity calendar rendered in 13-week quarters with 4-level dithering for quick habit visualization.
-  4. **Insights**: Habit metrics including current streak, longest streak, 7-day & 30-day daily averages, best reading day, most active day of the week, and average session length.
-
+  4. **Settings**: On-screen clock synchronization (NTP with startup delay absorption across multiple reliable servers), UTC timezone offset adjustment, 12-hour/24-hour format toggle, and live current time verification.
 ### 3. Wireless Management Without Cables
 - **Embedded Web Manager**: Connect to the reader via Wi-Fi hotspot (AP mode) or home network (STA mode) to upload books, organize files, and edit settings.
 - **WebDAV Support**: Mount the e-reader as a network drive on desktop OSes.

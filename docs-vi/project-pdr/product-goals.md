@@ -17,12 +17,11 @@ CrossPP là firmware máy đọc sách tập trung, không phân tâm, được 
 ### 2. Thống kê đọc sách tích hợp sẵn (Điểm nhấn của CrossPP)
 - **Cục bộ & Bảo mật**: Toàn bộ dữ liệu được lưu trên thẻ SD (`/.crosspoint/reading_stats.json`). Không thu thập dữ liệu người dùng hay yêu cầu kết nối mạng.
 - **Tự động đo thời gian đọc**: Chạy ngầm thông minh với bộ đếm timeout 5 phút không hoạt động để tránh ghi nhận sai lệch khi người dùng rời mắt khỏi máy.
-- **Bốn góc nhìn phân tích chuyên sâu**:
-  1. **Tổng quan (Overview)**: Tổng thời gian đọc, số phiên đọc, số sách đã đọc xong, chuỗi ngày đọc liên tiếp (streak) và trung bình 7 ngày gần nhất.
+- **Bốn tab phân tích và quản trị chuyên biệt**:
+  1. **Tổng quan (Overview)**: Dạng danh sách thống nhất tổng hợp các cột mốc đọc và thói quen đọc sách (tổng thời gian, số sách xong, số phiên, thời lượng TB/phiên, chuỗi hiện tại/kỷ lục, trung bình 7 ngày/30 ngày, ngày đọc nhiều nhất, thứ đọc nhiều nhất và cảnh báo đồng bộ đồng hồ nếu chưa thiết lập).
   2. **Theo sách (By Book)**: Tiến độ đọc, tổng thời gian, số ngày đọc và số phiên trên từng cuốn sách, hỗ trợ mở sách trực tiếp từ popup.
   3. **Biểu đồ nhiệt (Heatmap)**: Lịch đọc sách 52 tuần phong cách GitHub, chia thành các quý ~13 tuần với 4 cấp độ sắc thái hiển thị thói quen trực quan.
-  4. **Thói quen đọc (Insights)**: Chuỗi ngày đọc hiện tại, chuỗi kỷ lục, thời gian đọc trung bình 7 ngày & 30 ngày, ngày đọc nhiều nhất, thứ trong tuần đọc nhiều nhất và thời lượng trung bình mỗi phiên.
-
+  4. **Cài đặt (Settings)**: Đồng bộ đồng hồ qua mạng NTP (xử lý độ trễ khởi động mạng 20 giây qua nhiều máy chủ NTP uy tín), điều chỉnh múi giờ UTC, chuyển đổi định dạng 12h/24h và kiểm tra thời gian thực.
 ### 3. Quản lý sách không dây không cần cắm cáp
 - **Trình quản lý tệp Web tích hợp**: Kết nối với máy đọc sách qua Wi-Fi hotspot (chế độ AP) hoặc mạng nội bộ (chế độ STA) để tải sách lên, quản lý file và chỉnh cấu hình trực tiếp trên trình duyệt máy tính/điện thoại.
 - **Giao thức WebDAV**: Gắn máy đọc sách thành ổ đĩa mạng trên hệ điều hành máy tính.

@@ -106,13 +106,13 @@ bool HalClock::syncFromNTP() {
   }
 
   LOG_INF("CLK", "Starting NTP sync...");
-  configTzTime("UTC0", "pool.ntp.org", "time.nist.gov");
+  configTzTime("UTC0", "pool.ntp.org", "time.google.com", "time.cloudflare.com");
 
-  // Wait for SNTP sync to complete (up to 5 seconds)
-  constexpr int maxAttempts = 50;
+  // Wait for SNTP sync to complete (up to 20 seconds)
+  constexpr int maxAttempts = 200;
   for (int i = 0; i < maxAttempts; i++) {
-    if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED) {
-      time_t now = time(nullptr);
+    time_t now = time(nullptr);
+    if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED || now > 1704067200) {
       struct tm timeinfo;
       gmtime_r(&now, &timeinfo);
 
@@ -133,11 +133,11 @@ bool HalClock::syncFromNTP() {
                 dt.second);
         return true;
       }
+      LOG_ERR("CLK", "Failed to write synchronized time to RTC hardware");
       return false;
     }
     delay(100);
   }
-
   LOG_ERR("CLK", "NTP sync timed out");
   return false;
 }
