@@ -767,23 +767,18 @@ Tested in all 4 orientations with 5MB+ files.
 
 **Rule**: **If uncertain, ASK before committing.**
 
-### Release Protocol & Standards (1.0.0 / 1.0.1 / 1.0.3 Format)
+### Release Protocol & Standards (Upstream v1.5.0 Format)
 
 When asked to release or bump version:
 1. **Version String**: Update `version = X.Y.Z` in `platformio.ini` under `[crosspoint]`.
-2. **Build Release Binaries**: Production binaries MUST be built via `pio run -e gh_release`.
-3. **Artifact Bundle**: Every GitHub release MUST include all 3 binary files from `.pio/build/gh_release/`:
-   - `firmware.bin` (Production firmware for ESP32-C3 / Xteink X3/X4)
-   - `bootloader.bin` (Bootloader binary)
-   - `partitions.bin` (Partition table binary)
-4. **Tag & Release Title**: Exactly `X.Y.Z` (e.g. `1.0.4`), strictly matching the version string.
+2. **Tag & Release Title**: Use `vX.Y.Z` (e.g. `v1.0.3`) matching upstream convention.
+3. **Build Release Binaries**: Production binaries are built via `pio run -e gh_release`.
+4. **Artifact Bundle**: Include `firmware.bin` (Xteink X3/X4), `bootloader.bin`, and `partitions.bin`, plus multi-board binaries (`firmware-sticky.bin`, etc.) when compiled.
 5. **Release Notes Template**:
-   - `## CrossPP X.Y.Z` header and concise summary
-   - `### What's New` with categorized feature and fix bullets
-   - `### Downloads` listing `firmware.bin`, `bootloader.bin`, and `partitions.bin`
-   - `### How to Install` detailing web flasher and esptool steps
-6. **Automation**: Always use `./bin/release <version>` or `python3 scripts/release.py <version>`, which automatically validates git status, builds `gh_release`, creates the tag, and creates/updates the GitHub release with all 3 binaries attached.
-
+   - `# Summary` with concise release summary and highlights.
+   - `## What's Changed` (auto-generated via GitHub Release Notes API / `--generate-notes`).
+   - `# Downloads` with direct download links.
+6. **Automation**: Use `./bin/release vX.Y.Z` or push tag `vX.Y.Z`, which triggers `.github/workflows/release.yml` to compile matrix environments, create the release, auto-generate the changelog, and attach all binaries.
 ---
 
 ## Generated Files and Build Artifacts

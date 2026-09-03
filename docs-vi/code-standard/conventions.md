@@ -39,22 +39,15 @@ ESP32-C3 chỉ có ~380KB DRAM khả dụng và **hoàn toàn không có PSRAM**
 
 ### 5. Quy chuẩn phát hành phiên bản & Tệp nhị phân (Release Protocol)
 
-Mọi bản release phải tuân thủ nghiêm ngặt định dạng chuẩn đã thiết lập từ các bản 1.0.0, 1.0.1 và 1.0.3:
+Mọi bản release tuân thủ theo định dạng chuẩn của repo gốc (ví dụ `v1.5.0`):
 
 1. **Tăng số phiên bản**: Cập nhật `version = X.Y.Z` trong `platformio.ini` dưới mục `[crosspoint]`.
-2. **Biên dịch bản phát hành sản xuất**:
-   ```bash
-   pio run -e gh_release
-   ```
-3. **Bộ tệp nhị phân đính kèm (Artifacts)**: Mọi GitHub Release BẮT BUỘC phải đính kèm đủ 3 tệp nhị phân từ `.pio/build/gh_release/`:
+2. **Quy ước đặt Tag & Tiêu đề Release**: `vX.Y.Z` (ví dụ `v1.0.3`).
+3. **Bộ tệp nhị phân đính kèm (Artifacts)**: Mọi GitHub Release bao gồm firmware sản xuất cho các nền tảng:
    - `firmware.bin` (Firmware chính thức cho chip ESP32-C3 / máy Xteink X3/X4)
-   - `bootloader.bin` (Tệp bootloader)
-   - `partitions.bin` (Bảng phân vùng bộ nhớ)
-4. **Quy ước đặt Tag & Tiêu đề Release**:
-   - Định dạng Git Tag: `X.Y.Z` (ví dụ `1.0.3`)
-   - Tiêu đề Release: `X.Y.Z` (trùng khớp hoàn toàn với chuỗi phiên bản)
-5. **Cấu trúc nội dung Release Notes**:
-   - Tiêu đề cấp 2 `## CrossPP X.Y.Z` và đoạn tóm tắt ngắn 1-2 câu.
-   - `### What's New` phân nhóm rõ ràng các tính năng mới và bản vá lỗi.
-   - `### Downloads` liệt kê chi tiết `firmware.bin`, `bootloader.bin`, và `partitions.bin`.
-   - `### How to Install` hướng dẫn nạp qua web flasher và esptool.
+   - Các biến thể phần cứng: `firmware-sticky.bin`, `firmware-x4pro.bin`, `firmware-papermono.bin` (khi biên dịch)
+   - Tệp nạp flash: `bootloader.bin`, `partitions.bin`
+4. **Tự động hóa hoàn toàn qua CI/CD GitHub Actions**:
+   Khi push bất kỳ tag nào dạng `v*`, workflow `.github/workflows/release.yml` sẽ tự động biên dịch song song tất cả môi trường phần cứng, tạo release trên GitHub, tự động sinh changelog (`## What's Changed`) và đính kèm đầy đủ file `.bin`.
+5. **Phát hành nhanh bằng 1 lệnh từ CLI**:
+   Chạy `./bin/release vX.Y.Z` (hoặc `python3 scripts/release.py vX.Y.Z`) để tự động kiểm tra git, biên dịch binary sản xuất, đẩy tag và tạo release hoàn chỉnh với changelog cùng assets đính kèm.

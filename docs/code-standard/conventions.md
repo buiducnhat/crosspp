@@ -39,22 +39,15 @@ ESP32-C3 has ~380KB usable DRAM and **no PSRAM**. Memory fragmentation or unexpe
 
 ### 5. Release Protocol & Artifact Standards
 
-Every release must follow the standard repository pattern established in releases 1.0.0, 1.0.1, and 1.0.3:
+Every release follows the standard upstream repository pattern (e.g. `v1.5.0`):
 
-1. **Version Bump**: Increment `version = X.Y.Z` in `platformio.ini` under `[crosspoint]`.
-2. **Build Release Binaries**:
-   ```bash
-   pio run -e gh_release
-   ```
-3. **Artifact Bundle**: Every GitHub release MUST include all 3 binary files from `.pio/build/gh_release/`:
-   - `firmware.bin` (Production firmware binary for ESP32-C3 / Xteink X3/X4)
-   - `bootloader.bin` (Bootloader binary)
-   - `partitions.bin` (Partition table binary)
-4. **Git Tag & Release Title**:
-   - Tag format: `X.Y.Z` (e.g. `1.0.3`)
-   - Release Title: `X.Y.Z` (strictly matches the version string)
-5. **Release Notes Structure**:
-   - `## CrossPP X.Y.Z` header and concise summary.
-   - `### What's New` with categorized feature and fix bullets.
-   - `### Downloads` listing `firmware.bin`, `bootloader.bin`, and `partitions.bin`.
-   - `### How to Install` with web flasher and esptool instructions.
+1. **Version Bump**: Update `version = X.Y.Z` in `platformio.ini` under `[crosspoint]`.
+2. **Tag & Release Title**: `vX.Y.Z` (e.g. `v1.0.3`).
+3. **Artifact Bundle**: Every GitHub release includes the production firmware binary for the target hardware:
+   - `firmware.bin` (Production firmware for ESP32-C3 / Xteink X3/X4)
+   - Multi-board assets: `firmware-sticky.bin`, `firmware-x4pro.bin`, `firmware-papermono.bin` (when compiled)
+   - Flash components: `bootloader.bin`, `partitions.bin`
+4. **Automated CI/CD Release**:
+   Pushing any tag matching `v*` automatically triggers `.github/workflows/release.yml`, which compiles the matrix environments in parallel, creates/updates the GitHub Release with auto-generated changelog notes (`## What's Changed`), and attaches all binary artifacts.
+5. **One-Command CLI Release**:
+   Run `./bin/release vX.Y.Z` (or `python3 scripts/release.py vX.Y.Z`) to validate the git tree, build production binaries, push the tag, and publish the release with full changelog and attached binaries.

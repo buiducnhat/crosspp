@@ -83,27 +83,20 @@ def build_release_binaries(pio: str):
         print(f"  ✓ {name}: {path.stat().st_size / 1024:.1f} KB")
 
 
-def generate_default_notes(version: str, notes_body: str = "") -> str:
+def generate_default_notes(tag: str, repo: str, notes_body: str = "") -> str:
     if not notes_body:
-        notes_body = """### What's New
+        notes_body = "Performance, stability, and feature updates. Refer to the changelog below for details."
 
-- Performance, stability, and feature updates. Refer to commit log for details."""
-
-    return f"""## CrossPP {version}
+    return f"""# Summary
 
 {notes_body}
 
-### Downloads
-- **`firmware.bin`**: Production firmware binary for ESP32-C3 based devices (Xteink X3 and Xteink X4).
-- **`bootloader.bin`**: Bootloader binary.
-- **`partitions.bin`**: Partition table binary.
+# Downloads
 
-### How to Install
-1. Download `firmware.bin`.
-2. Connect your device via USB-C.
-3. Flash via web flasher (e.g. at [crosspointreader.com/#flash-tools](https://crosspointreader.com/#flash-tools) with Custom .bin) or using `esptool.py`.
+[Xteink X4/X3 (firmware.bin)](https://github.com/{repo}/releases/download/{tag}/firmware.bin)
+[ESP32-C3 Bootloader (bootloader.bin)](https://github.com/{repo}/releases/download/{tag}/bootloader.bin)
+[ESP32-C3 Partitions (partitions.bin)](https://github.com/{repo}/releases/download/{tag}/partitions.bin)
 """
-
 
 def ensure_git_tag(version: str):
     res = subprocess.run(["git", "tag", "-l", version], cwd=REPO_ROOT, capture_output=True, text=True)
@@ -139,14 +132,15 @@ def publish_github_release(version: str, repo: str, notes: str):
                         "--repo", repo, "--clobber"], cwd=REPO_ROOT, check=True)
     else:
         print(f"Creating new GitHub release {version} with assets...")
-        subprocess.run([
+        cmd = [
             gh, "release", "create", version,
             str(FIRMWARE_BIN), str(BOOTLOADER_BIN), str(PARTITIONS_BIN),
             "--repo", repo,
             "--title", version,
             "--notes", notes,
-        ], cwd=REPO_ROOT, check=True)
-
+            "--generate-notes",
+        ]
+        subprocess.run(cmd, cwd=REPO_ROOT, check=True)
     print(f"\n✓ Successfully published: https://github.com/{repo}/releases/tag/{version}")
 
 
@@ -157,29 +151,27 @@ def main():
     parser.add_argument("--repo", help="Target GitHub repository", default=DEFAULT_REPO)
     parser.add_argument("--skip-build", help="Skip PlatformIO build step", action="store_true")
     parser.add_argument("--no-push", help="Skip pushing to git remote", action="store_true")
-    args = parser.parse_args()
-
-    version = args.version.lstrip("v")  # Standard is without leading 'v'
+    raw_version = args.version.lstrip("v")
+    tag = f"v{raw_version}"
     print(f"==================================================")
-    print(f" CrossPP Release Process for Version: {version}")
+    print(f" CrossPP Release Process for Version: {tag}")
     print(f"==================================================")
 
     check_git_status()
-    verify_platformio_ini_version(version)
+    verify_platformio_ini_version(raw_version)
 
     pio = find_pio()
     if not args.skip_build:
         build_release_binaries(pio)
 
-    ensure_git_tag(version)
-
+    ensure_git_tag(tag)
+    notes = generate_default_notes(tag, args.repo, args.notes)
     pushed = False
     if not args.no_push:
-        pushed = push_to_remote(version, args.repo)
+        pushed = push_to_remote(tag, args.repo)
 
-    notes = generate_default_notes(version, args.notes)
     if pushed or args.no_push:
-        publish_github_release(version, args.repo, notes)
+        publish_github_release(tag, args.repo, notes)
 
     print("\nRelease workflow completed successfully!")
 
