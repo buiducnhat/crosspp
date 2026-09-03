@@ -134,13 +134,13 @@ pio check
 
 ## Documentation
 
+- **[Documentation Index & Developer Guide](./docs/SUMMARY.md)** ([Bản tiếng Việt](./docs-vi/SUMMARY.md))
 - [User Guide](./USER_GUIDE.md)
 - [Web Server Usage](./docs/webserver.md)
 - [Web Server Endpoints](./docs/webserver-endpoints.md)
 - [Dictionary Setup](./docs/dictionary.md)
 - [Touch & UI Development](./docs/contributing/touch-and-ui.md)
 - [File Formats & Cache](./docs/file-formats.md)
-
 ---
 
 ## Credits & Acknowledgments
