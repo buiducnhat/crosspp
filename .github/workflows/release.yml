@@ -11,8 +11,7 @@ on:
       - '*'
 
 permissions:
-  contents: read
-
+  contents: write
 jobs:
   build-release:
     runs-on: ubuntu-latest
@@ -81,3 +80,15 @@ jobs:
             .pio/build/${{ matrix.pio_env }}/firmware.elf
             .pio/build/${{ matrix.pio_env }}/firmware.map
             .pio/build/${{ matrix.pio_env }}/partitions.bin
+
+      - name: Attach Assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            .pio/build/${{ matrix.pio_env }}/${{ matrix.asset }}
+            .pio/build/${{ matrix.pio_env }}/bootloader.bin
+            .pio/build/${{ matrix.pio_env }}/partitions.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
