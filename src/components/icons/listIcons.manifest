@@ -22,4 +22,5 @@ upload = upload
 download = download
 bookmark = bookmark
 usb = usb
-chart-column = chart-column
+blocks = blocks
+refresh-cw = refresh-cw
