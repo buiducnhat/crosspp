@@ -26,6 +26,7 @@ FIRMWARE_BIN = BUILD_DIR / "firmware.bin"
 BOOTLOADER_BIN = BUILD_DIR / "bootloader.bin"
 PARTITIONS_BIN = BUILD_DIR / "partitions.bin"
 DEFAULT_REPO = "buiducnhat/crosspp"
+non_interactive = False
 
 
 def find_pio() -> str:
@@ -46,9 +47,10 @@ def check_git_status():
         print("Warning: uncommitted changes detected in tracked files:", file=sys.stderr)
         for line in tracked_changes:
             print(f"  {line}", file=sys.stderr)
-        ans = input("Continue anyway? [y/N]: ").strip().lower()
-        if ans != "y":
-            sys.exit(1)
+        if not non_interactive:
+            ans = input("Continue anyway? [y/N]: ").strip().lower()
+            if ans != "y":
+                sys.exit(1)
 
 
 def verify_platformio_ini_version(version: str):
@@ -61,9 +63,10 @@ def verify_platformio_ini_version(version: str):
     ini_ver = m.group(1)
     if ini_ver != version:
         print(f"Version mismatch: platformio.ini has '{ini_ver}', but target release is '{version}'", file=sys.stderr)
-        ans = input(f"Update platformio.ini to {version}? [Y/n]: ").strip().lower()
-        if ans not in ("", "y", "yes"):
-            sys.exit(1)
+        if not non_interactive:
+            ans = input(f"Update platformio.ini to {version}? [Y/n]: ").strip().lower()
+            if ans not in ("", "y", "yes"):
+                sys.exit(1)
         new_content = re.sub(r"(\[crosspoint\]\s*\n\s*version\s*=\s*)[^\s\n]+", rf"\g<1>{version}", content)
         ini_path.write_text(new_content, encoding="utf-8")
         print(f"Updated platformio.ini version to {version}")
@@ -108,10 +111,11 @@ def ensure_git_tag(version: str):
 
 
 def push_to_remote(version: str, repo: str):
-    ans = input(f"\nPush branch and tag '{version}' to remote origin? [Y/n]: ").strip().lower()
-    if ans not in ("", "y", "yes"):
-        print("Skipping push to remote.")
-        return False
+    if not non_interactive:
+        ans = input(f"\nPush branch and tag '{version}' to remote origin? [Y/n]: ").strip().lower()
+        if ans not in ("", "y", "yes"):
+            print("Skipping push to remote.")
+            return False
     subprocess.run(["git", "push", "origin", "develop", version], cwd=REPO_ROOT, check=True)
     return True
 
@@ -151,6 +155,10 @@ def main():
     parser.add_argument("--repo", help="Target GitHub repository", default=DEFAULT_REPO)
     parser.add_argument("--skip-build", help="Skip PlatformIO build step", action="store_true")
     parser.add_argument("--no-push", help="Skip pushing to git remote", action="store_true")
+    parser.add_argument("-y", "--yes", help="Automatic yes to prompts", action="store_true")
+    args = parser.parse_args()
+    global non_interactive
+    non_interactive = args.yes
     raw_version = args.version.lstrip("v")
     tag = f"v{raw_version}"
     print(f"==================================================")
