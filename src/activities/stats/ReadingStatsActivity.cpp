@@ -14,11 +14,22 @@
 #include <cstdio>
 
 #include "CrossPointSettings.h"
-#include "activities/settings/ClockOffsetActivity.h"
+#include "util/Timezones.h"
 #include "activities/settings/ClockSyncActivity.h"
+#include "activities/settings/TimezonePickerActivity.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 namespace fui = freeink::ui;
+namespace {
+std::string findBookTitle(const std::string& path) {
+  for (const auto& book : RECENT_BOOKS.getBooks()) {
+    if (book.path == path && !book.title.empty()) return book.title;
+  }
+  const size_t lastSlash = path.find_last_of('/');
+  return lastSlash != std::string::npos ? path.substr(lastSlash + 1) : path;
+}
+}  // namespace
+
 
 ReadingStatsActivity::ReadingStatsActivity(GfxRenderer& renderer, MappedInputManager& mappedInput)
     : UiTabListActivity("ReadingStats", renderer, mappedInput) {}
@@ -190,8 +201,7 @@ void ReadingStatsActivity::buildByBook(UiScreen& screen) {
   for (size_t i = 0; i < statBookPaths.size(); i++) {
     const auto& path = statBookPaths[i];
     const auto* stats = STATS_STORE.getBook(path.c_str());
-    bookTitles[i] = RECENT_BOOKS.getDataFromBook(path).title;
-    if (bookTitles[i].empty()) bookTitles[i] = path;
+    bookTitles[i] = findBookTitle(path);
     char minutesBuf[24];
     char valueBuf[64];
     snprintf(valueBuf, sizeof(valueBuf), "%s · %lu",
@@ -376,29 +386,24 @@ void ReadingStatsActivity::buildSettings(UiScreen& screen) {
   const char* syncVal = SETTINGS.clockHasBeenSynced ? tr(STR_CLOCK_SYNCED) : tr(STR_NOT_SET);
   snprintf(settingsValues[0], sizeof(settingsValues[0]), "%s", syncVal);
 
-  // Row 1: UTC Offset
-  uint8_t biasedQ = SETTINGS.clockUtcOffsetQ;
-  if (biasedQ > 104) biasedQ = 48;
-  const int totalMinutes = (static_cast<int>(biasedQ) - 48) * 15;
-  const bool neg = totalMinutes < 0;
-  const int absMinutes = neg ? -totalMinutes : totalMinutes;
-  const int hours = absMinutes / 60;
-  const int mins = absMinutes % 60;
-  snprintf(settingsValues[1], sizeof(settingsValues[1]), "UTC%c%02d:%02d", neg ? '-' : '+', hours, mins);
+  // Row 1: Time Zone
+  const TimezoneInfo* zone = &timezones::table()[timezones::activeIndex()];
+  char offset[16];
+  timezones::formatOffset(timezones::activeIndex(), offset, sizeof(offset));
+  snprintf(settingsValues[1], sizeof(settingsValues[1]), "%s (%s)", zone->name, offset);
 
   // Row 2: Clock Format
   const char* formatVal = SETTINGS.clockFormat == 1 ? tr(STR_CLOCK_FORMAT_12H) : tr(STR_CLOCK_FORMAT_24H);
   snprintf(settingsValues[2], sizeof(settingsValues[2]), "%s", formatVal);
 
   // Row 3: Current Time
-  if (!halClock.formatTime(settingsValues[3], sizeof(settingsValues[3]), SETTINGS.clockUtcOffsetQ,
-                           SETTINGS.clockFormat == 1)) {
+  if (!halClock.formatTime(settingsValues[3], sizeof(settingsValues[3]), SETTINGS.clockFormat == 1)) {
     snprintf(settingsValues[3], sizeof(settingsValues[3]), "%s", tr(STR_NOT_SET));
   }
 
   const char* const labels[STATS_SETTINGS_ROWS] = {
       tr(STR_CLOCK_SYNC_NOW),
-      tr(STR_CLOCK_UTC_OFFSET),
+      tr(STR_TIMEZONE),
       tr(STR_CLOCK_FORMAT),
       tr(STR_CURRENT_TIME),
   };
@@ -431,8 +436,7 @@ void ReadingStatsActivity::showBookDetail(const int index) {
   const auto& path = statBookPaths[index];
   const auto* stats = STATS_STORE.getBook(path.c_str());
 
-  std::string title = RECENT_BOOKS.getDataFromBook(path).title;
-  if (title.empty()) title = path;
+  std::string title = findBookTitle(path);
 
   char totalBuf[24];
   char avgBuf[24];
@@ -504,10 +508,10 @@ void ReadingStatsActivity::handleSettingsSelection(const int index) {
       LOG_ERR("STATS", "OOM: ClockSyncActivity");
     }
   } else if (index == 1) {
-    if (auto activity = makeUniqueNoThrow<ClockOffsetActivity>(renderer, mappedInput)) {
+    if (auto activity = makeUniqueNoThrow<TimezonePickerActivity>(renderer, mappedInput)) {
       startActivityForResult(std::move(activity), [this](const ActivityResult&) { requestUpdate(); });
     } else {
-      LOG_ERR("STATS", "OOM: ClockOffsetActivity");
+      LOG_ERR("STATS", "OOM: TimezonePickerActivity");
     }
   } else if (index == 2) {
     SETTINGS.clockFormat = (SETTINGS.clockFormat + 1) % 2;
@@ -544,8 +548,8 @@ bool ReadingStatsActivity::handleCustomInput() {
 void ReadingStatsActivity::navigateButtons() {
   // Same ring walk as UiTabListActivity; popup opens on Confirm, not ring move.
   const int ringSize = listCount() + 1;
-  buttonNavigator.onNextRelease([this, ringSize] { moveRingTo(ButtonNavigator::nextIndex(ringPos(), ringSize)); });
-  buttonNavigator.onPreviousRelease(
+  buttonNavigator.onNextPress([this, ringSize] { moveRingTo(ButtonNavigator::nextIndex(ringPos(), ringSize)); });
+  buttonNavigator.onPreviousPress(
       [this, ringSize] { moveRingTo(ButtonNavigator::previousIndex(ringPos(), ringSize)); });
   buttonNavigator.onNextContinuous([this] { stepTab(1); });
   buttonNavigator.onPreviousContinuous([this] { stepTab(-1); });
